@@ -1,6 +1,5 @@
 import cv2
 import numpy as np
-import autopy
 import pyautogui
 import pyaudio
 import audioop
@@ -26,31 +25,37 @@ class Fishing():
         self.window_size_h = None
         self.dev = False
         self.p = pyaudio.PyAudio()
-        
+        self.audio_index = 0
+        if self.config.get("Settings", "screens") == "off":
+            self.screens = False
+        else:
+            self.screens = True
 
 
 # p = pyaudio.PyAudio()
 # for i in range(p.get_device_count()):
 #     print (p.get_device_info_by_index(i))
 
-
+    def device_check(self):
+        for i in range(self.p.get_device_count()):
+            if self.p.get_device_info_by_index(i)["name"] == "CABLE Output (VB-Audio Virtual ":
+                self.audio_index = self.p.get_device_info_by_index(i)["index"]
 
     def get_proc_id(self):
 
         for proc in psutil.process_iter():
             if proc.name() == self.config.get("Settings", "ProcessName"):
-                print(proc.pid)
                 return proc.pid
  
 
 
-    def _get_hwnd_by_pid(self, pid):
-        """Gets handle of the window that belongs to a process.
 
+    def _get_hwnd_by_pid(self, pid):
+        """
         Args:
-        pid: process id.
+        pid: process id
         Returns:
-        Window handle.
+        window handle
         """
 
         def callback(hwnd, hwnds):
@@ -62,8 +67,8 @@ class Fishing():
 
         hwnds = []
         win32gui.EnumWindows(callback, hwnds)
-        print(hwnds)
         return hwnds[0] if hwnds else None 
+
 
 
 
@@ -84,11 +89,17 @@ class Fishing():
             time.sleep(1)
             exit(0)
 
+
+
+
     def send_float(self):
         print ('Sending float')
-        pyautogui.press("+")
+        pyautogui.press(self.config.get("Settings", "Button"))
         print ('Float is sent, waiting animation')
         time.sleep(2)
+
+
+
 
     def make_screenshot(self):
         print ('Capturing screen')
@@ -96,17 +107,20 @@ class Fishing():
         print("BBOX:", self.bbox)
         screenshot = ImageGrab.grab(self.bbox) # (0, 710, 410, 1010)
         if self.dev:
-            screenshot_name = 'var/fishing_session_' + str(int(time.time())) + '.png'
+            screenshot_name = '.\\var\\fishing_session_' + str(int(time.time())) + '.png'
         else:
-            screenshot_name = 'var/fishing_session.png'
+            screenshot_name = '.\\var\\fishing_session.png'
         screenshot.save(screenshot_name)
         return screenshot_name
+
+
+
 
     def find_float(self, img_name):
         print ('Looking for float')
         # todo: maybe make some universal float without background? +1
         for x in range(0, 1):
-            template = cv2.imread('var/fishing_float_' + str(x) + '.png', 0)
+            template = cv2.imread('.\\var\\fishing_float_' + str(x) + '.png', 0)
 
             img_rgb = cv2.imread(img_name)
             img_gray = cv2.cvtColor(img_rgb, cv2.COLOR_BGR2GRAY)
@@ -119,51 +133,59 @@ class Fishing():
                 cv2.rectangle(img_rgb, pt, (pt[0] + w, pt[1] + h), (0,0,255), 2)
             if loc[0].any():
                 print ('Found ' + str(x) + ' float')
-                cv2.imwrite('var/fishing_session_' + str(int(time.time())) + '_success.png', img_rgb)
+                if self.screens:
+                    cv2.imwrite('.\\var\\fishing_session_' + str(int(time.time())) + '_success.png', img_rgb)
+                else:
+                    pass
                 return (loc[1][0] + w / 2), (loc[0][0] + h / 2)
+
+
 
 
     def move_mouse(self, place):
         x = round(self.window_start_point_x + place[0])
         y = round(self.window_start_point_y + place[1])
         print(x,y)
-        print("Moving cursor to " + "x:" + str(x) + " y:" + str(y))
-        pyautogui.moveTo(x, y)
-        # autopy.mouse.smooth_move(x ,y)
+        print(f"Moving cursor to {int(x)} - {int(y)}")
+        pyautogui.moveTo(x, y, random.uniform(0.2,1))
+
+
+
 
     def listen(self):
-        print ('Well, now we are listening for loud sounds...')
+        print ('Listening..')
         CHUNK = 512  # CHUNKS of bytes to read each time from mic
         FORMAT = pyaudio.paInt16
         CHANNELS = 8
         RATE = 18000
+        if self.config.get("Settings", "Device_check") == "on":
+            INDEX = self.audio_index
+        else:
+            INDEX = int(self.config.get("Settings", "Index"))
 
-
-        #Open stream
-        # p = pyaudio.PyAudio()
 
         stream = self.p.open(format=FORMAT,
                         channels=CHANNELS,
                         rate=RATE,
                         input=True,
                         frames_per_buffer=CHUNK,
-                        input_device_index=int(self.config.get("Settings", "Index")))
-        cur_data = ''  # current chunk  of audio data
+                        input_device_index=INDEX)
+        current_data = ''
 
         success = False
         listening_start_time = time.time()
         while True:
             try:
 
-                cur_data = stream.read(CHUNK)
-                rms = audioop.rms(cur_data, 2)
+                current_data = stream.read(CHUNK)
+                rms = audioop.rms(current_data, 2)
                 print(rms) # uncomment if noise level check needed
                 if rms > int(self.config.get("Settings", "RMS")):
-                    print ('I heart something!')
+                    print ('I heard something!')
                     success = True
                     break
                 if time.time() - listening_start_time > 20:
-                    print ('I don\'t hear anything already 20 seconds!')
+                    print ('No sounds caught, trying again')
                     break
             except IOError:
                 break
@@ -171,6 +193,9 @@ class Fishing():
         stream.close()
         # p.terminate()
         return success
+
+
+
 
     def snatch(self):
         print('Snatching!')
@@ -181,6 +206,10 @@ class Fishing():
 if __name__ == "__main__":
 
     s = Fishing()
+    if s.config.get("Settings", "Device_check") == "on":
+        s.device_check()
+    else:
+        pass
     proc_id = s.get_proc_id()
     hwnd = s._get_hwnd_by_pid(proc_id)
     
@@ -192,12 +221,11 @@ if __name__ == "__main__":
         s.send_float()
         image = s.make_screenshot()
         place = s.find_float(image)
-        print("Place: ", place)
         if not place:
-            print ('Float was not found')
+            print ('Bobber not found')
             
             continue
-        print('Float found at ' + str(place))
+        print('Bobber found at ' + str(place))
         s.move_mouse(place)
         if not s.listen():
             print ('If we didn\' hear anything, lets try again')
@@ -210,4 +238,5 @@ if __name__ == "__main__":
         if catched == int(s.config.get("Settings", "Catched")):
             break
         print ('catched ' + str(catched))
+    s.p.terminate()
     print("We done!")
