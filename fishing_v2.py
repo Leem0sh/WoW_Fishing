@@ -1,5 +1,5 @@
 import cv2
-import numpy as np
+from numpy import where
 import pyautogui
 import pyaudio
 import audioop
@@ -103,8 +103,6 @@ class Fishing():
 
     def make_screenshot(self):
         print ('Capturing screen')
-        print(self.window_start_point_x)
-        print("BBOX:", self.bbox)
         screenshot = ImageGrab.grab(self.bbox) # (0, 710, 410, 1010)
         if self.dev:
             screenshot_name = '.\\var\\fishing_session_' + str(int(time.time())) + '.png'
@@ -127,8 +125,8 @@ class Fishing():
             # print('got images')
             w, h = template.shape[::-1]
             res = cv2.matchTemplate(img_gray,template,cv2.TM_CCOEFF_NORMED)
-            threshold = 0.65
-            loc = np.where( res >= threshold)
+            threshold = int(self.config.get("Settings", "Recognition_treshold"))
+            loc = where( res >= threshold) # numpy.where
             for pt in zip(*loc[::-1]):
                 cv2.rectangle(img_rgb, pt, (pt[0] + w, pt[1] + h), (0,0,255), 2)
             if loc[0].any():
@@ -145,8 +143,8 @@ class Fishing():
     def move_mouse(self, place):
         x = round(self.window_start_point_x + place[0])
         y = round(self.window_start_point_y + place[1])
-        print(x,y)
-        print(f"Moving cursor to {int(x)} - {int(y)}")
+   
+        print(f"Moving cursor to {x} - {y}")
         pyautogui.moveTo(x, y, random.uniform(0.2,1))
 
 
