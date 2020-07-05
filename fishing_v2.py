@@ -1,5 +1,5 @@
 import cv2
-from numpy import where
+from numpy import where, array
 import pyautogui
 import pyaudio
 import audioop
@@ -30,7 +30,8 @@ class Fishing():
             self.screens = False
         else:
             self.screens = True
-
+        self.catched = 0
+        self.start_time = time.time()
 
 # p = pyaudio.PyAudio()
 # for i in range(p.get_device_count()):
@@ -104,12 +105,13 @@ class Fishing():
     def make_screenshot(self):
         print ('Capturing screen')
         screenshot = ImageGrab.grab(self.bbox) # (0, 710, 410, 1010)
-        if self.dev:
-            screenshot_name = '.\\var\\fishing_session_' + str(int(time.time())) + '.png'
-        else:
-            screenshot_name = '.\\var\\fishing_session.png'
-        screenshot.save(screenshot_name)
-        return screenshot_name
+        screenshot = array(screenshot)
+        # if self.dev:
+        #     screenshot_name = '.\\var\\fishing_session_' + str(int(time.time())) + '.png'
+        # else:
+        #     screenshot_name = '.\\var\\fishing_session.png'
+        # screenshot.save(screenshot_name)
+        return screenshot
 
 
 
@@ -117,25 +119,24 @@ class Fishing():
     def find_float(self, img_name):
         print ('Looking for float')
         # todo: maybe make some universal float without background? +1
-        for x in range(0, 1):
-            template = cv2.imread('.\\var\\fishing_float_' + str(x) + '.png', 0)
+        template = cv2.imread('.\\var\\bobber' + '.png', 0)
 
-            img_rgb = cv2.imread(img_name)
-            img_gray = cv2.cvtColor(img_rgb, cv2.COLOR_BGR2GRAY)
-            # print('got images')
-            w, h = template.shape[::-1]
-            res = cv2.matchTemplate(img_gray,template,cv2.TM_CCOEFF_NORMED)
-            threshold = int(self.config.get("Settings", "Recognition_treshold"))
-            loc = where( res >= threshold) # numpy.where
-            for pt in zip(*loc[::-1]):
-                cv2.rectangle(img_rgb, pt, (pt[0] + w, pt[1] + h), (0,0,255), 2)
-            if loc[0].any():
-                print ('Found ' + str(x) + ' float')
-                if self.screens:
-                    cv2.imwrite('.\\var\\fishing_session_' + str(int(time.time())) + '_success.png', img_rgb)
-                else:
-                    pass
-                return (loc[1][0] + w / 2), (loc[0][0] + h / 2)
+        # img_rgb = cv2.imread(img_name)
+        img_gray = cv2.cvtColor(img_name, cv2.COLOR_BGR2GRAY)
+        # print('got images')
+        w, h = template.shape[::-1]
+        res = cv2.matchTemplate(img_gray,template,cv2.TM_CCOEFF_NORMED)
+        threshold = float(self.config.get("Settings", "Recognition_treshold"))
+        loc = where( res >= threshold) # numpy.where
+        for pt in zip(*loc[::-1]):
+            cv2.rectangle(img_name, pt, (pt[0] + w, pt[1] + h), (0,0,255), 2)
+        if loc[0].any():
+            print ('Float found')
+            if self.screens:
+                cv2.imwrite('.\\var\\fishing_session_' + str(int(time.time())) + '_success.png', img_name)
+            else:
+                pass
+            return (loc[1][0] + w / 2), (loc[0][0] + h / 2)
 
 
 
@@ -172,17 +173,21 @@ class Fishing():
 
         success = False
         listening_start_time = time.time()
+        count = 0
         while True:
             try:
-
+                count += 1
                 current_data = stream.read(CHUNK)
                 rms = audioop.rms(current_data, 2)
                 print(rms) # uncomment if noise level check needed
                 if rms > int(self.config.get("Settings", "RMS")):
-                    print ('I heard something!')
-                    success = True
-                    break
-                if time.time() - listening_start_time > 20:
+                    if count > 10:
+                        print ('I heard something!')
+                        success = True
+                        break
+                    else:
+                        pass
+                if time.time() - listening_start_time > 19:
                     print ('No sounds caught, trying again')
                     break
             except IOError:
@@ -193,11 +198,13 @@ class Fishing():
         return success
 
 
+    def timing(self):
+        print(f"Script running for: {round((time.time() - self.start_time) /60, 2)} minutes")
 
 
     def snatch(self):
         print('Snatching!')
-        time.sleep(random.uniform(0.2,2))
+        time.sleep(random.uniform(0.2,1))
         pyautogui.click()
 
 
@@ -212,7 +219,6 @@ if __name__ == "__main__":
     hwnd = s._get_hwnd_by_pid(proc_id)
     
     s.check_screen_size(hwnd)
-    catched = 0
     tries = 0
     while not s.dev:
         tries += 1
@@ -230,11 +236,12 @@ if __name__ == "__main__":
             time.sleep(1)
             continue
         s.snatch()
-        time.sleep(random.randint(1,3))
-        catched += 1
+        s.timing()
+        time.sleep(random.uniform(0.8,1.1))
+        s.catched += 1
         print ('guess we\'ve snatched something')
-        if catched == int(s.config.get("Settings", "Catched")):
+        if s.catched == int(s.config.get("Settings", "Catched")):
             break
-        print ('catched ' + str(catched))
+        print ('catched ' + str(s.catched))
     s.p.terminate()
     print("We done!")
