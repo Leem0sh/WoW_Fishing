@@ -97,7 +97,7 @@ class Fishing():
         print ('Sending float')
         pyautogui.press(self.config.get("Settings", "Button"))
         print ('Float is sent, waiting animation')
-        time.sleep(2)
+        time.sleep(2.5)
 
 
 
@@ -126,6 +126,10 @@ class Fishing():
         # print('got images')
         w, h = template.shape[::-1]
         res = cv2.matchTemplate(img_gray,template,cv2.TM_CCOEFF_NORMED)
+        # cv2.imshow("res", res)
+        # while True:
+        #     if cv2.waitKey(10) == 27:
+        #         break
         threshold = float(self.config.get("Settings", "Recognition_treshold"))
         loc = where( res >= threshold) # numpy.where
         for pt in zip(*loc[::-1]):
@@ -179,7 +183,7 @@ class Fishing():
                 count += 1
                 current_data = stream.read(CHUNK)
                 rms = audioop.rms(current_data, 2)
-                print(rms) # uncomment if noise level check needed
+                print(rms)
                 if rms > int(self.config.get("Settings", "RMS")):
                     if count > 10:
                         print ('I heard something!')
@@ -239,7 +243,7 @@ if __name__ == "__main__":
         s.timing()
         time.sleep(random.uniform(0.8,1.1))
         s.catched += 1
-        print ('guess we\'ve snatched something')
+        print("Gotcha!")
         if s.catched == int(s.config.get("Settings", "Catched")):
             break
         print ('catched ' + str(s.catched))
