@@ -86,16 +86,14 @@ class Fishing():
                 self.window_size_h))
             print("BBOX: ", self.bbox)
         except:
-            print(
-                f"{self.config.get('Settings', 'ProcessName')}
+            print(f"{self.config.get('Settings', 'ProcessName')}\
                 process NOT found. Exiting in 1...")
             time.sleep(1)
             exit(0)
 
     def send_float(self):
-        print ('Sending float')
         pyautogui.press(self.config.get("Settings", "Button"))
-        print ('Float is sent, waiting animation')
+        print ('Button hit, waiting for animation')
         time.sleep(2.5)
 
     def make_screenshot(self):
@@ -112,16 +110,14 @@ class Fishing():
 
     def find_float(self, img_name):
         print ('Looking for float')
-        # todo: maybe make some universal float without background? +1
+        # todo: float without background? ALPHA CHANNEL 
         template = cv2.imread('.\\var\\bobber' + '.png', cv2.IMREAD_UNCHANGED)
 
-        # img_rgb = cv2.imread(img_name)
         img_gray = cv2.cvtColor(img_name, cv2.COLOR_BGR2GRAY)
-        # print('got images')
         w, h = template.shape[::-1]
         res = cv2.matchTemplate(img_gray, template, cv2.TM_CCOEFF_NORMED)
         threshold = float(self.config.get("Settings", "Recognition_treshold"))
-        loc = where(res >= threshold)  # numpy.where
+        loc = where(res >= threshold)  # numpy where
         for pt in zip(*loc[::-1]):
             cv2.rectangle(img_name, pt, (pt[0] + w, pt[1] + h), (0, 0, 255), 2)
         if loc[0].any():
