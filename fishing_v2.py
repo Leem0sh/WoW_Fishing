@@ -98,19 +98,20 @@ class Fishing:
         print("Button hit, waiting for animation")
         time.sleep(2.5)
 
-    def make_screenshot(self):
-        print("Capturing screen")
-        screenshot = ImageGrab.grab(self.bbox)  # (0, 710, 410, 1010)
-        screenshot = array(screenshot)
-        # if self.dev:
-        #     screenshot_name = '.\\var\\fishing_session_'
-        # + str(int(time.time())) + '.png'
-        # else:
-        #     screenshot_name = '.\\var\\fishing_session.png'
-        # screenshot.save(screenshot_name)
-        return screenshot
+    # def make_screenshot(self):
+    #     print("Capturing screen")
+    #     screenshot = ImageGrab.grab(self.bbox)  # (0, 710, 410, 1010)
+    #     screenshot = array(screenshot)
+    #     # if self.dev:
+    #     #     screenshot_name = '.\\var\\fishing_session_'
+    #     # + str(int(time.time())) + '.png'
+    #     # else:
+    #     #     screenshot_name = '.\\var\\fishing_session.png'
+    #     # screenshot.save(screenshot_name)
+    #     return screenshot
 
-    def find_float(self, img_name):
+    def find_float(self):
+
         print("Looking for float")
         # todo: float without background? ALPHA CHANNEL
         # # # template = cv2.imread('.\\var\\bobber' + '.png', cv2.IMREAD_UNCHANGED)
@@ -134,21 +135,17 @@ class Fishing:
         # # #         pass
         # # #     return (loc[1][0] + w / 2), (loc[0][0] + h / 2)
 
-        while 1:
+        for x in range(1, 1000):
             loc = pyautogui.locateOnScreen(
-                ".\\var\\bobbery.png",
+                ".\\var\\bobberr.png",
                 confidence=0.6,
-                region=(590, 300, 600, 400),
+                region=(590, 200, 600, 400),
             )
             if loc != None:
-
-                print("I can see that")
-                print(loc)
-                time.sleep(0.2)
+                print(loc[0] + (loc[2] / 2), loc[1] + (loc[3] / 2))
             else:
-                print("Cant see")
                 print(loc)
-                time.sleep(0.2)
+        return (loc[0] + (loc[2] / 2), loc[1] + (loc[3] / 2))
 
     def move_mouse(self, place):
         x = round(self.window_start_point_x + place[0])
@@ -229,8 +226,8 @@ if __name__ == "__main__":
     while not s.dev:
         tries += 1
         s.send_float()
-        image = s.make_screenshot()
-        place = s.find_float(image)
+        # image = s.make_screenshot()
+        place = s.find_float()
         if not place:
             print("Bobber not found")
             continue
