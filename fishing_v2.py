@@ -1,5 +1,5 @@
-import cv2
 from numpy import where, array
+import cv2
 import pyautogui
 import pyaudio
 import audioop
@@ -10,7 +10,61 @@ import random
 import configparser
 import win32gui
 import win32process
+import sys
 from PIL import ImageGrab
+from PyQt5 import QtWidgets, QtCore, QtGui
+import tkinter as tk
+from PIL import ImageGrab
+
+finimg = None
+
+
+class MyWidget(QtWidgets.QWidget):
+    def __init__(self):
+        super().__init__()
+        root = tk.Tk()
+        screen_width = root.winfo_screenwidth()
+        screen_height = root.winfo_screenheight()
+        self.setGeometry(0, 0, screen_width, screen_height)
+        self.setWindowTitle(" ")
+        self.begin = QtCore.QPoint()
+        self.end = QtCore.QPoint()
+        self.setWindowOpacity(0.3)
+        QtWidgets.QApplication.setOverrideCursor(QtGui.QCursor(QtCore.Qt.CrossCursor))
+        self.setWindowFlags(QtCore.Qt.FramelessWindowHint)
+        print("Capture the screen...")
+        self.show()
+
+    def paintEvent(self, event):
+        qp = QtGui.QPainter(self)
+        qp.setPen(QtGui.QPen(QtGui.QColor("black"), 3))
+        qp.setBrush(QtGui.QColor(128, 128, 255, 128))
+        qp.drawRect(QtCore.QRect(self.begin, self.end))
+
+    def mousePressEvent(self, event):
+        self.begin = event.pos()
+        self.end = self.begin
+        self.update()
+
+    def mouseMoveEvent(self, event):
+        self.end = event.pos()
+        self.update()
+
+    def mouseReleaseEvent(self, event):
+        self.close()
+
+        x1 = min(self.begin.x(), self.end.x())
+        y1 = min(self.begin.y(), self.end.y())
+        x2 = max(self.begin.x(), self.end.x())
+        y2 = max(self.begin.y(), self.end.y())
+
+        img = ImageGrab.grab(bbox=(x1, y1, x2, y2))
+        img.save("capture.png")
+        finimg = cv2.cvtColor(array(img), cv2.COLOR_BGR2RGB)
+
+        cv2.imshow("Captured Image", finimg)
+        cv2.waitKey(0)
+        cv2.destroyAllWindows()
 
 
 class Fishing:
@@ -137,7 +191,7 @@ class Fishing:
 
         for x in range(1, 10):
             loc = pyautogui.locateOnScreen(
-                ".\\var\\bobber.png",
+                finimg,
                 confidence=0.6,
                 region=(590, 200, 600, 400),
             )
@@ -220,11 +274,17 @@ if __name__ == "__main__":
         s.device_check()
     else:
         pass
-    # CREATE SCREEN
 
     proc_id = s.get_proc_id()
     hwnd = s._get_hwnd_by_pid(proc_id)
     s.check_screen_size(hwnd)
+    s.send_float()
+    # CREATE SCREEN #
+    app = QtWidgets.QApplication(sys.argv)
+    window = MyWidget()
+    window.show()
+    #################
+
     tries = 0
     while not s.dev:
         tries += 1
