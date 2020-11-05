@@ -135,14 +135,15 @@ class Fishing:
         # # #         pass
         # # #     return (loc[1][0] + w / 2), (loc[0][0] + h / 2)
 
-        for x in range(1, 1000):
+        for x in range(1, 10):
             loc = pyautogui.locateOnScreen(
-                ".\\var\\bobberr.png",
+                ".\\var\\bobber.png",
                 confidence=0.6,
                 region=(590, 200, 600, 400),
             )
             if loc != None:
                 print(loc[0] + (loc[2] / 2), loc[1] + (loc[3] / 2))
+                break
             else:
                 print(loc)
         return (loc[0] + (loc[2] / 2), loc[1] + (loc[3] / 2))
@@ -219,6 +220,8 @@ if __name__ == "__main__":
         s.device_check()
     else:
         pass
+    # CREATE SCREEN
+
     proc_id = s.get_proc_id()
     hwnd = s._get_hwnd_by_pid(proc_id)
     s.check_screen_size(hwnd)
