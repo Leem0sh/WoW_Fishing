@@ -1,4 +1,4 @@
-
+# Wow Fishing Bot 
 1. Download https://www.vb-audio.com/Cable/ and reboot your PC 
 
 2. Run check.py and look for 'CABLE Output (VB-Audio Virtual' 
