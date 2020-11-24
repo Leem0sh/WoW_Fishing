@@ -70,7 +70,7 @@ class MyWidget(QtWidgets.QWidget):
 class Fishing:
     def __init__(self):
         self.config = configparser.ConfigParser()
-        self.config.read(".\\conf.ini", encoding="utf-8")
+        self.config.read("..\\conf\\conf.ini", encoding="utf-8")
         self.screen_size = None
         self.bbox = None
         self.window_start_point_x = None
@@ -188,19 +188,21 @@ class Fishing:
         # # #     else:
         # # #         pass
         # # #     return (loc[1][0] + w / 2), (loc[0][0] + h / 2)
-
-        for x in range(1, 10):
+        count = 0
+        while True:
             loc = pyautogui.locateOnScreen(
-                finimg,
+                "..\\Capture.png",
                 confidence=0.6,
                 region=(590, 200, 600, 400),
             )
             if loc != None:
                 print(loc[0] + (loc[2] / 2), loc[1] + (loc[3] / 2))
-                break
+                return (loc[0] + (loc[2] / 2), loc[1] + (loc[3] / 2))
             else:
-                print(loc)
-        return (loc[0] + (loc[2] / 2), loc[1] + (loc[3] / 2))
+                count += 1
+                if count == 10:
+                    break
+        # return (loc[0] + (loc[2] / 2), loc[1] + (loc[3] / 2))
 
     def move_mouse(self, place):
         x = round(self.window_start_point_x + place[0])
@@ -237,7 +239,7 @@ class Fishing:
                 count += 1
                 current_data = stream.read(CHUNK)
                 rms = audioop.rms(current_data, 2)
-                print(rms)  # uncomment if noise level check needed
+                # print(rms)  # uncomment if noise level check needed
                 if rms > int(self.config.get("Settings", "RMS")):
                     if count > 10:
                         print("I heard something!")
@@ -280,9 +282,10 @@ if __name__ == "__main__":
     s.check_screen_size(hwnd)
     s.send_float()
     # CREATE SCREEN #
-    app = QtWidgets.QApplication(sys.argv)
-    window = MyWidget()
-    window.show()
+    # app = QtWidgets.QApplication(sys.argv)
+    # window = MyWidget()
+    # window.show()
+    # time.sleep(100)
     #################
 
     tries = 0
