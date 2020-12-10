@@ -1,29 +1,73 @@
-import cv2 as cv
-import numpy as np
+from numpy import where, array
+import cv2
+import pyautogui
+import pyaudio
+import audioop
+import os
+import time
+import psutil
+import random
+import configparser
+import win32gui
+import win32process
+import sys
+from PIL import ImageGrab
+from PyQt5 import QtWidgets, QtCore, QtGui
+import tkinter as tk
+from PIL import ImageGrab
 
-img = cv.imread("screen.jpg", cv.IMREAD_COLOR)
-templ = cv.imread("bobbery.png", cv.IMREAD_COLOR)
-templ_incl_alpha_ch = cv.imread("bobbery.png", cv.IMREAD_UNCHANGED)
+finimg = None
 
-channels = cv.split(templ_incl_alpha_ch)
-#extract "transparency" channel from image
-alpha_channel = np.array(channels[3]) 
-#generate mask image, all black dots will be ignored during matching
-mask = cv.merge([alpha_channel,alpha_channel,alpha_channel])
-cv.imshow("Mask", mask)
 
-result = cv.matchTemplate(img, templ, cv.TM_CCOEFF_NORMED, None, mask)
-cv.imshow("Matching with mask", result)
-min_val, max_val, min_loc, max_loc = cv.minMaxLoc(result)
-print('Highest correlation WITH mask', max_val)
+class MyWidget(QtWidgets.QWidget):
+    def __init__(self):
+        super().__init__()
+        root = tk.Tk()
+        screen_width = root.winfo_screenwidth()
+        screen_height = root.winfo_screenheight()
+        self.setGeometry(0, 0, screen_width, screen_height)
+        self.setWindowTitle(" ")
+        self.begin = QtCore.QPoint()
+        self.end = QtCore.QPoint()
+        self.setWindowOpacity(0.3)
+        QtWidgets.QApplication.setOverrideCursor(QtGui.QCursor(QtCore.Qt.CrossCursor))
+        self.setWindowFlags(QtCore.Qt.FramelessWindowHint)
+        print("Capture the screen...")
+        self.show()
 
-result = cv.matchTemplate(img, templ, cv.TM_CCOEFF_NORMED)
-cv.imshow("Matching without mask", result)
-min_val, max_val, min_loc, max_loc = cv.minMaxLoc(result)
-print('Highest correlation without mask', max_val)
+    def paintEvent(self, event):
+        qp = QtGui.QPainter(self)
+        qp.setPen(QtGui.QPen(QtGui.QColor("black"), 3))
+        qp.setBrush(QtGui.QColor(128, 128, 255, 128))
+        qp.drawRect(QtCore.QRect(self.begin, self.end))
 
-while True:
-    if cv.waitKey(10) == 27:
-        break
+    def mousePressEvent(self, event):
+        self.begin = event.pos()
+        self.end = self.begin
+        self.update()
 
-cv.destroyAllWindows()
+    def mouseMoveEvent(self, event):
+        self.end = event.pos()
+        self.update()
+
+    def mouseReleaseEvent(self, event):
+        self.close()
+
+        x1 = min(self.begin.x(), self.end.x())
+        y1 = min(self.begin.y(), self.end.y())
+        x2 = max(self.begin.x(), self.end.x())
+        y2 = max(self.begin.y(), self.end.y())
+
+        img = ImageGrab.grab(bbox=(x1, y1, x2, y2))
+        img.save("capture.png")
+        finimg = cv2.cvtColor(array(img), cv2.COLOR_BGR2RGB)
+
+        cv2.imshow("Captured Image", finimg)
+        cv2.waitKey(0)
+        cv2.destroyAllWindows()
+
+
+app = QtWidgets.QApplication(sys.argv)
+window = MyWidget()
+window.show()
+time.sleep(100)
