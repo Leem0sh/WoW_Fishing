@@ -6,78 +6,156 @@ import audioop
 import os
 import time
 import psutil
+import click
 import random
 import configparser
 import win32gui
 import win32process
 import sys
+from tkinter import *
+import datetime
 from PIL import ImageGrab
-from PyQt5 import QtWidgets, QtCore, QtGui
-import tkinter as tk
-from PIL import ImageGrab
-
-finimg = None
 
 
-class MyWidget(QtWidgets.QWidget):
-    def __init__(self):
-        super().__init__()
-        root = tk.Tk()
-        screen_width = root.winfo_screenwidth()
-        screen_height = root.winfo_screenheight()
-        self.setGeometry(0, 0, screen_width, screen_height)
-        self.setWindowTitle(" ")
-        self.begin = QtCore.QPoint()
-        self.end = QtCore.QPoint()
-        self.setWindowOpacity(0.3)
-        QtWidgets.QApplication.setOverrideCursor(QtGui.QCursor(QtCore.Qt.CrossCursor))
-        self.setWindowFlags(QtCore.Qt.FramelessWindowHint)
-        print("Capture the screen...")
-        self.show()
+class Application:
+    def __init__(self, master):
+        self.master = master
+        self.rect = None
+        self.x = self.y = 0
+        self.start_x = None
+        self.start_y = None
+        self.curX = None
+        self.curY = None
 
-    def paintEvent(self, event):
-        qp = QtGui.QPainter(self)
-        qp.setPen(QtGui.QPen(QtGui.QColor("black"), 3))
-        qp.setBrush(QtGui.QColor(128, 128, 255, 128))
-        qp.drawRect(QtCore.QRect(self.begin, self.end))
+        # root.configure(background = 'red')
+        # root.attributes("-transparentcolor","red")
 
-    def mousePressEvent(self, event):
-        self.begin = event.pos()
-        self.end = self.begin
-        self.update()
+        self.master.attributes("-transparent", "blue")
+        self.master.geometry("400x50+200+200")  # set new geometry
+        self.master.title("Lil Snippy")
+        self.master.attributes("-topmost", True)
+        self.menu_frame = Frame(master, bg="blue")
+        self.menu_frame.pack(fill=BOTH, expand=YES)
 
-    def mouseMoveEvent(self, event):
-        self.end = event.pos()
-        self.update()
+        self.buttonBar = Frame(self.menu_frame, bg="")
+        self.buttonBar.pack(fill=BOTH, expand=YES)
 
-    def mouseReleaseEvent(self, event):
-        self.close()
+        self.snipButton = Button(
+            self.buttonBar, width=3, command=self.createScreenCanvas, background="green"
+        )
+        self.snipButton.pack(expand=YES)
 
-        x1 = min(self.begin.x(), self.end.x())
-        y1 = min(self.begin.y(), self.end.y())
-        x2 = max(self.begin.x(), self.end.x())
-        y2 = max(self.begin.y(), self.end.y())
+        self.master_screen = Toplevel(self.master)
+        self.master_screen.withdraw()
+        self.master_screen.attributes("-transparent", "blue")
+        self.picture_frame = Frame(self.master_screen, background="blue")
+        self.picture_frame.pack(fill=BOTH, expand=YES)
 
-        img = ImageGrab.grab(bbox=(x1, y1, x2, y2))
-        img.save("capture.png")
-        finimg = cv2.cvtColor(array(img), cv2.COLOR_BGR2RGB)
+    def takeBoundedScreenShot(self, x1, y1, x2, y2):
 
-        cv2.imshow("Captured Image", finimg)
-        cv2.waitKey(0)
-        cv2.destroyAllWindows()
+        im = ImageGrab.grab(bbox=(x1 + 3, y1 + 3, x1 + x2 - 3, y1 + y2 - 3))
+        im.save(os.path.join(__file__, "..\..\capture.png"))
+
+    def createScreenCanvas(self):
+        self.master_screen.deiconify()
+        self.master.withdraw()
+
+        self.screenCanvas = Canvas(self.picture_frame, cursor="cross", bg="grey11")
+        self.screenCanvas.pack(fill=BOTH, expand=YES)
+
+        self.screenCanvas.bind("<ButtonPress-1>", self.on_button_press)
+        self.screenCanvas.bind("<B1-Motion>", self.on_move_press)
+        self.screenCanvas.bind("<ButtonRelease-1>", self.on_button_release)
+
+        self.master_screen.attributes("-fullscreen", True)
+        self.master_screen.attributes("-alpha", 0.3)
+        self.master_screen.lift()
+        self.master_screen.attributes("-topmost", True)
+
+    def on_button_release(self, event):
+        self.recPosition()
+
+        if self.start_x <= self.curX and self.start_y <= self.curY:
+            print("right down")
+            self.takeBoundedScreenShot(
+                self.start_x,
+                self.start_y,
+                self.curX - self.start_x,
+                self.curY - self.start_y,
+            )
+
+        elif self.start_x >= self.curX and self.start_y <= self.curY:
+            print("left down")
+            self.takeBoundedScreenShot(
+                self.curX,
+                self.start_y,
+                self.start_x - self.curX,
+                self.curY - self.start_y,
+            )
+
+        elif self.start_x <= self.curX and self.start_y >= self.curY:
+            print("right up")
+            self.takeBoundedScreenShot(
+                self.start_x,
+                self.curY,
+                self.curX - self.start_x,
+                self.start_y - self.curY,
+            )
+
+        elif self.start_x >= self.curX and self.start_y >= self.curY:
+            print("left up")
+            self.takeBoundedScreenShot(
+                self.curX, self.curY, self.start_x - self.curX, self.start_y - self.curY
+            )
+
+        self.exitScreenshotMode()
+        return event
+
+    def exitScreenshotMode(self):
+        print("Screenshot mode exited")
+        self.screenCanvas.destroy()
+        self.master_screen.withdraw()
+        self.master.deiconify()
+
+    def exit_application(self):
+        print("Application exit")
+        self.master.quit()
+
+    def on_button_press(self, event):
+        # save mouse drag start position
+        self.start_x = self.screenCanvas.canvasx(event.x)
+        self.start_y = self.screenCanvas.canvasy(event.y)
+
+        self.rect = self.screenCanvas.create_rectangle(
+            self.x, self.y, 1, 1, outline="red", width=3, fill="blue"
+        )
+
+    def on_move_press(self, event):
+        self.curX, self.curY = (event.x, event.y)
+        # expand rectangle as you drag the mouse
+        self.screenCanvas.coords(
+            self.rect, self.start_x, self.start_y, self.curX, self.curY
+        )
+
+    def recPosition(self):
+        print(self.start_x)
+        print(self.start_y)
+        print(self.curX)
+        print(self.curY)
 
 
 class Fishing:
     def __init__(self):
         self.config = configparser.ConfigParser()
-        self.config.read("..\\conf\\conf.ini", encoding="utf-8")
+        self.config.read(
+            os.path.join(__file__, "..\..\conf\conf.ini"), encoding="utf-8"
+        )
         self.screen_size = None
         self.bbox = None
         self.window_start_point_x = None
         self.window_start_point_y = None
         self.window_size_w = None
         self.window_size_h = None
-        self.dev = False
         self.p = pyaudio.PyAudio()
         self.audio_index = 0
         if self.config.get("Settings", "screens") == "off":
@@ -167,31 +245,11 @@ class Fishing:
     def find_float(self):
 
         print("Looking for float")
-        # todo: float without background? ALPHA CHANNEL
-        # # # template = cv2.imread('.\\var\\bobber' + '.png', cv2.IMREAD_UNCHANGED)
 
-        # # # img_gray = cv2.cvtColor(img_name, cv2.COLOR_BGR2GRAY)
-        # # # w, h = template.shape[::-1]
-        # # # res = cv2.matchTemplate(img_gray, template, cv2.TM_CCOEFF_NORMED)
-        # # # threshold = float(self.config.get("Settings", "Recognition_treshold"))
-        # # # loc = where(res >= threshold)  # numpy where
-        # # # for pt in zip(*loc[::-1]):
-        # # #     cv2.rectangle(img_name, pt, (pt[0] + w, pt[1] + h), (0, 0, 255), 2)
-        # # # if loc[0].any():
-        # # #     print ('Float found')
-        # # #     if self.screens:
-        # # #         cv2.imwrite(
-        # # #             '.\\var\\fishing_session_'
-        # # #             + str(int(time.time()))
-        # # #             + '_success.png',
-        # # #             img_name)
-        # # #     else:
-        # # #         pass
-        # # #     return (loc[1][0] + w / 2), (loc[0][0] + h / 2)
         count = 0
         while True:
             loc = pyautogui.locateOnScreen(
-                "..\\Capture.png",
+                os.path.join(__file__, "..\..\capture.png"),
                 confidence=0.6,
                 region=(590, 200, 600, 400),
             )
@@ -259,8 +317,7 @@ class Fishing:
 
     def timing(self):
         print(
-            f"Script running for: \
-        {round((time.time() - self.start_time) /60, 2)} minutes"
+            f"Script running for: {round((time.time() - self.start_time) /60, 2)} minutes"
         )
 
     def snatch(self):
@@ -269,27 +326,31 @@ class Fishing:
         pyautogui.click()
 
 
-if __name__ == "__main__":
-
+@click.command()
+@click.option(
+    "--wantcatch",
+    "-wc",
+    prompt="How many fish do you want to capture?",
+    help="While number of captured fish is lower than the number you want to capture, it's gonna be fishing",
+)
+def main(wantcatch):
     s = Fishing()
     if s.config.get("Settings", "Device_check") == "on":
         s.device_check()
     else:
         pass
+    ###### CAPTURE SCREEN #######
+    root = Tk()
+    app = Application(root)
+    root.mainloop()
+    ###### CAPTURE SCREEN #######
 
     proc_id = s.get_proc_id()
     hwnd = s._get_hwnd_by_pid(proc_id)
     s.check_screen_size(hwnd)
-    s.send_float()
-    # CREATE SCREEN #
-    # app = QtWidgets.QApplication(sys.argv)
-    # window = MyWidget()
-    # window.show()
-    # time.sleep(100)
-    #################
 
     tries = 0
-    while not s.dev:
+    while s.catched < int(wantcatch):
         tries += 1
         s.send_float()
         # image = s.make_screenshot()
@@ -308,8 +369,7 @@ if __name__ == "__main__":
         time.sleep(random.uniform(0.8, 1.1))
         s.catched += 1
         print("guess we've snatched something")
-        if s.catched == int(s.config.get("Settings", "Catched")):
-            break
         print("catched " + str(s.catched))
+        print(f"Succesful {(s.catched / tries)*100}%")
     s.p.terminate()
     print("We done!")
