@@ -370,6 +370,6 @@ def main(wantcatch):
         s.catched += 1
         print("guess we've snatched something")
         print("catched " + str(s.catched))
-        print(f"Succesful {(s.catched / tries)*100}%")
+        print(f"Succesful {s.catched} / {tries} | {round((s.catched / tries)*100, 2)}%")
     s.p.terminate()
     print("We done!")
