@@ -235,7 +235,7 @@ class Fishing:
     def send_float(self):
         pyautogui.press(self.config.get("Settings", "Button"))
         print("Button hit, waiting for animation")
-        time.sleep(3)
+        time.sleep(2.5)
 
     # def make_screenshot(self):
     #     print("Capturing screen")
@@ -256,7 +256,7 @@ class Fishing:
         press_key("b")
         loc = pyautogui.locateOnScreen(
             os.path.join(__file__, f"..\..\icons\\{fish.lower()}.png"),
-            confidence=0.8,
+            confidence=0.7,
             region=(1300, 250, 1875, 945),
         )
         if loc != None:
@@ -283,7 +283,7 @@ class Fishing:
             loc = pyautogui.locateOnScreen(
                 os.path.join(__file__, "..\..\capture.png"),
                 confidence=0.6,
-                region=(590, 200, 600, 400),
+                region=(550, 150, 700, 400),
             )
             if loc != None:
                 print(loc[0] + (loc[2] / 2), loc[1] + (loc[3] / 2))
@@ -353,7 +353,7 @@ class Fishing:
         )
 
     def snatch(self):
-        time.sleep(random.uniform(0.2, 0.4))
+        time.sleep(random.uniform(0.1, 0.3))
         pyautogui.click()
 
 
@@ -439,7 +439,6 @@ def main(wantcatch, printscreen, bait):
             s.move_mouse(place)
             if not s.listen():
                 print("If we didn' hear anything, lets try again")
-                time.sleep(1)
                 continue
             s.snatch()
             s.timing()
@@ -450,7 +449,7 @@ def main(wantcatch, printscreen, bait):
             print(
                 f"Succesful {s.catched} / {tries} | {round((s.catched / tries)*100, 2)}%"
             )
-            time.sleep(1)
+            # time.sleep(1)
         s.p.terminate()
         logWriter(s.start_time, s.catched, tries, wantcatch)
 
