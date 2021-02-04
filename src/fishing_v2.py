@@ -18,13 +18,31 @@ from PIL import ImageGrab
 import json
 
 
+##########################################
+#                                        #
+#          PRESS KEY FUNCTION            #
+#                                        #
+##########################################
+# TODO:            None                  #
+##########################################
+
+
 def press_key(key):
     pyautogui.keyDown(key)
     time.sleep(0.1)
     pyautogui.keyUp(key)
 
 
-class Application:
+##########################################
+#                                        #
+#               SNAPSHOT                 #
+#                                        #
+##########################################
+# TODO:            None                  #
+##########################################
+
+
+class Snapper:
     def __init__(self, master):
         self.master = master
         self.rect = None
@@ -34,12 +52,9 @@ class Application:
         self.curX = None
         self.curY = None
 
-        # root.configure(background = 'red')
-        # root.attributes("-transparentcolor","red")
-
         self.master.attributes("-transparent", "blue")
-        self.master.geometry("400x50+200+200")  # set new geometry
-        self.master.title("Lil Snippy")
+        self.master.geometry("200x50+200+200")
+        self.master.title("ScreenSnapper")
         self.master.attributes("-topmost", True)
         self.menu_frame = Frame(master, bg="blue")
         self.menu_frame.pack(fill=BOTH, expand=YES)
@@ -83,7 +98,6 @@ class Application:
         self.recPosition()
 
         if self.start_x <= self.curX and self.start_y <= self.curY:
-            print("right down")
             self.takeBoundedScreenShot(
                 self.start_x,
                 self.start_y,
@@ -92,7 +106,6 @@ class Application:
             )
 
         elif self.start_x >= self.curX and self.start_y <= self.curY:
-            print("left down")
             self.takeBoundedScreenShot(
                 self.curX,
                 self.start_y,
@@ -101,7 +114,6 @@ class Application:
             )
 
         elif self.start_x <= self.curX and self.start_y >= self.curY:
-            print("right up")
             self.takeBoundedScreenShot(
                 self.start_x,
                 self.curY,
@@ -110,7 +122,6 @@ class Application:
             )
 
         elif self.start_x >= self.curX and self.start_y >= self.curY:
-            print("left up")
             self.takeBoundedScreenShot(
                 self.curX, self.curY, self.start_x - self.curX, self.start_y - self.curY
             )
@@ -119,13 +130,11 @@ class Application:
         return event
 
     def exitScreenshotMode(self):
-        print("Screenshot mode exited")
         self.screenCanvas.destroy()
         self.master_screen.withdraw()
         self.master.deiconify()
 
     def exit_application(self):
-        print("Application exit")
         self.master.quit()
 
     def on_button_press(self, event):
@@ -151,6 +160,15 @@ class Application:
         print(self.curY)
 
 
+##########################################
+#                                        #
+#              FISHING                   #
+#                                        #
+##########################################
+# TODO:            None                  #
+##########################################
+
+
 class Fishing:
     def __init__(self):
         self.config = configparser.ConfigParser()
@@ -172,9 +190,13 @@ class Fishing:
         self.catched = 0
         self.start_time = time.time()
 
-    # p = pyaudio.PyAudio()
-    # for i in range(p.get_device_count()):
-    #     print (p.get_device_info_by_index(i))
+    ##########################################
+    #                                        #
+    #             DEVICE CHECK               #
+    #                                        #
+    ##########################################
+    # TODO:            None                  #
+    ##########################################
 
     def device_check(self):
         for i in range(self.p.get_device_count()):
@@ -209,6 +231,14 @@ class Fishing:
         win32gui.EnumWindows(callback, hwnds)
         return hwnds[0] if hwnds else None
 
+    ##########################################
+    #                                        #
+    #              SCREEN SIZE               #
+    #                                        #
+    ##########################################
+    # TODO:            None                  #
+    ##########################################
+
     def check_screen_size(self, hwnd):
         try:
             win32gui.SetForegroundWindow(hwnd)
@@ -237,19 +267,15 @@ class Fishing:
         print("Button hit, waiting for animation")
         time.sleep(2.5)
 
-    # def make_screenshot(self):
-    #     print("Capturing screen")
-    #     screenshot = ImageGrab.grab(self.bbox)  # (0, 710, 410, 1010)
-    #     screenshot = array(screenshot)
-    #     # if self.dev:
-    #     #     screenshot_name = '.\\var\\fishing_session_'
-    #     # + str(int(time.time())) + '.png'
-    #     # else:
-    #     #     screenshot_name = '.\\var\\fishing_session.png'
-    #     # screenshot.save(screenshot_name)
-    #     return screenshot
-
-    ##### 1300 250 1875 945
+    ##########################################
+    #                                        #
+    #             BAIT DEPLOY                #
+    #                                        #
+    ##########################################
+    # TODO: region size according to         #
+    #       size of the window               #
+    #       - Done with bbox tuple           #
+    ##########################################
 
     def bait_deploy(self, fish):
         pyautogui.moveTo(1, 1, 0)
@@ -257,7 +283,12 @@ class Fishing:
         loc = pyautogui.locateOnScreen(
             os.path.join(__file__, f"..\..\icons\\{fish.lower()}.png"),
             confidence=0.7,
-            region=(1300, 250, 1875, 945),
+            region=(
+                self.bbox[0] + 100,
+                self.bbox[1] + 100,
+                self.bbox[2] - 100,
+                self.bbox[3] - 100,
+            ),  # 1920x1080
         )
         if loc != None:
             center_of_icon = (loc[0] + (loc[2] / 2), loc[1] + (loc[3] / 2))
@@ -274,16 +305,29 @@ class Fishing:
             # No bait in inventory
             bait_in_inventory = False
 
-    def find_float(self):
+    ##########################################
+    #                                        #
+    #             FLOAT FINDER               #
+    #                                        #
+    ##########################################
+    # TODO:    region of locateOnScreen      #
+    #          based on window size          #
+    ##########################################
 
-        print("Looking for float")
+    def find_float(self):
 
         count = 0
         while True:
             loc = pyautogui.locateOnScreen(
                 os.path.join(__file__, "..\..\capture.png"),
                 confidence=0.6,
-                region=(550, 150, 700, 400),
+                region=(
+                    #### CATCHING WINDOW ####
+                    int(self.window_size_w * 0.25),
+                    int(self.window_size_h * 0.14),
+                    int(self.window_size_w * 0.65),
+                    int(self.window_size_h * 0.55),
+                ),
             )
             if loc != None:
                 print(loc[0] + (loc[2] / 2), loc[1] + (loc[3] / 2))
@@ -294,11 +338,27 @@ class Fishing:
                     break
         # return (loc[0] + (loc[2] / 2), loc[1] + (loc[3] / 2))
 
+    ##########################################
+    #                                        #
+    #            MOUSE MOVEMENT              #
+    #                                        #
+    ##########################################
+    # TODO:            None                  #
+    ##########################################
+
     def move_mouse(self, place):
         x = round(self.window_start_point_x + place[0])
         y = round(self.window_start_point_y + place[1])
         print(f"Moving cursor to {x} - {y}")
         pyautogui.moveTo(x, y, random.uniform(0.2, 1))
+
+    ##########################################
+    #                                        #
+    #       LISTENING SPLASH SOUND           #
+    #                                        #
+    ##########################################
+    # TODO:            None                  #
+    ##########################################
 
     def listen(self):
         print("Listening..")
@@ -329,7 +389,14 @@ class Fishing:
                 count += 1
                 current_data = stream.read(CHUNK)
                 rms = audioop.rms(current_data, 2)
-                # print(rms)  # uncomment if noise level check needed
+
+                ##########################################
+                #                                        #
+                #                 RMS                    #
+                #                                        #
+                ##########################################
+
+                print(rms)
                 if rms > int(self.config.get("Settings", "RMS")):
                     if count > 10:
                         print("I heard something!")
@@ -347,14 +414,39 @@ class Fishing:
         # p.terminate()
         return success
 
+    ##########################################
+    #                                        #
+    #                 UPTIME                 #
+    #                                        #
+    ##########################################
+    # TODO:            None                  #
+    ##########################################
+
     def timing(self):
         print(
             f"Script running for: {round((time.time() - self.start_time) /60, 2)} minutes"
         )
 
+    ##########################################
+    #                                        #
+    #             CLICK FUNCTION             #
+    #                                        #
+    ##########################################
+    # TODO:            None                  #
+    ##########################################
+
     def snatch(self):
         time.sleep(random.uniform(0.1, 0.3))
         pyautogui.click()
+
+
+##########################################
+#                                        #
+#              LOG WRITER                #
+#                                        #
+##########################################
+# TODO:            None                  #
+##########################################
 
 
 def logWriter(start_time, catched, tries, wantcatch):
@@ -373,6 +465,16 @@ def logWriter(start_time, catched, tries, wantcatch):
     ) as f:
 
         json.dump(data, f, indent=6)
+
+
+##########################################
+#                                        #
+#             MAIN FUNCTION              #
+#            WITH DECORATORS             #
+#                                        #
+##########################################
+# TODO:            None                  #
+##########################################
 
 
 @click.command()
@@ -403,7 +505,7 @@ def main(wantcatch, printscreen, bait):
         ###### CAPTURE SCREEN #######
         if printscreen:
             root = Tk()
-            app = Application(root)
+            app = Snapper(root)
             root.mainloop()
         ###### CAPTURE SCREEN #######
 
@@ -417,8 +519,6 @@ def main(wantcatch, printscreen, bait):
             # FIRST BAIT FUNCTION
             s.bait_deploy(bait)
 
-            pass
-
         #########################
 
         while s.catched < wantcatch:
@@ -426,8 +526,7 @@ def main(wantcatch, printscreen, bait):
             if bait and bait_in_inventory:
                 if now - bait_timer > 1800:
                     s.bait_deploy(bait)
-            # print("BAIT CHECK")
-            # s.first_bait_check()
+
             tries += 1
             s.send_float()
             # image = s.make_screenshot()
@@ -438,14 +537,11 @@ def main(wantcatch, printscreen, bait):
             print("Bobber found at " + str(place))
             s.move_mouse(place)
             if not s.listen():
-                print("If we didn' hear anything, lets try again")
                 continue
             s.snatch()
             s.timing()
             time.sleep(random.uniform(0.8, 1.1))
             s.catched += 1
-            print("guess we've snatched something")
-            print("catched " + str(s.catched))
             print(
                 f"Succesful {s.catched} / {tries} | {round((s.catched / tries)*100, 2)}%"
             )
